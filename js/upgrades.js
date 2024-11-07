@@ -1,5 +1,4 @@
-// upgrades.js - Upgrade System and Definitions
-
+// upgrades.js - Fixed version
 class UpgradeManager {
     constructor(game) {
         this.game = game;
@@ -15,17 +14,17 @@ class UpgradeManager {
             {
                 id: 'cursor',
                 name: 'Cosmic Cursor',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.cursor,
+                baseCost: 15,
                 count: 0,
                 cps: 0.1,
-                description: 'Clicks the cookie automatically',
+                description: 'Auto-clicks the cookie',
                 icon: '👆',
                 unlocked: true
             },
             {
                 id: 'grandma',
                 name: 'Quantum Grandma',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.grandma,
+                baseCost: 100,
                 count: 0,
                 cps: 1,
                 description: 'A nice quantum grandma to bake more cookies',
@@ -35,96 +34,38 @@ class UpgradeManager {
             {
                 id: 'farm',
                 name: 'Cookie Farm',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.farm,
+                baseCost: 1100,
                 count: 0,
                 cps: 8,
-                description: 'Grows cookie plants from quantum soil',
+                description: 'Grows cookie plants',
                 icon: '🌾',
                 unlocked: true
             },
             {
                 id: 'mine',
                 name: 'Cookie Mine',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.mine,
+                baseCost: 12000,
                 count: 0,
                 cps: 47,
-                description: 'Mines cookie dough from the quantum realm',
+                description: 'Mines cookie dough',
                 icon: '⛏️',
-                unlocked: false,
-                requirement: { building: 'farm', count: 5 }
+                unlocked: true
             },
             {
                 id: 'factory',
                 name: 'Cookie Factory',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.factory,
+                baseCost: 130000,
                 count: 0,
                 cps: 260,
-                description: 'Mass produces cookies through quantum tunneling',
+                description: 'Mass produces cookies',
                 icon: '🏭',
-                unlocked: false,
-                requirement: { building: 'mine', count: 5 }
-            },
-            {
-                id: 'bank',
-                name: 'Cookie Bank',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.bank,
-                count: 0,
-                cps: 1400,
-                description: 'Generates cookies from quantum fluctuations',
-                icon: '🏦',
-                unlocked: false,
-                requirement: { building: 'factory', count: 5 }
-            },
-            {
-                id: 'temple',
-                name: 'Cookie Temple',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.temple,
-                count: 0,
-                cps: 7800,
-                description: 'Worship the ancient cookie gods',
-                icon: '🏛️',
-                unlocked: false,
-                requirement: { building: 'bank', count: 5 }
-            },
-            {
-                id: 'wizard_tower',
-                name: 'Cookie Wizard Tower',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.wizard_tower,
-                count: 0,
-                cps: 44000,
-                description: 'Summons cookies using ancient magic',
-                icon: '🗼',
-                unlocked: false,
-                requirement: { building: 'temple', count: 5 }
-            },
-            {
-                id: 'shipment',
-                name: 'Cookie Shipment',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.shipment,
-                count: 0,
-                cps: 260000,
-                description: 'Import cookies from the cookie dimension',
-                icon: '🚀',
-                unlocked: false,
-                requirement: { building: 'wizard_tower', count: 5 }
-            },
-            {
-                id: 'alchemy_lab',
-                name: 'Cookie Alchemy Lab',
-                baseCost: CONFIG.BUILDING_BASE_COSTS.alchemy_lab,
-                count: 0,
-                cps: 1600000,
-                description: 'Transmute ordinary matter into cookies',
-                icon: '⚗️',
-                unlocked: false,
-                requirement: { building: 'shipment', count: 5 }
+                unlocked: true
             }
         ];
     }
 
     initializeUpgrades() {
         return [
-            // Cursor Upgrades
             {
                 id: 'reinforced_clicking',
                 name: 'Reinforced Clicking',
@@ -137,52 +78,15 @@ class UpgradeManager {
                 icon: '✨'
             },
             {
-                id: 'quantum_clicking',
-                name: 'Quantum Clicking',
+                id: 'quantum_cookies',
+                name: 'Quantum Cookies',
                 cost: 500,
-                type: 'cursor',
-                description: 'Cursors exist in multiple states, tripling their efficiency',
-                multiplier: 3,
-                requirement: { building: 'cursor', count: 10 },
-                purchased: false,
-                icon: '🌟'
-            },
-            
-            // Grandma Upgrades
-            {
-                id: 'quantum_baking',
-                name: 'Quantum Baking',
-                cost: 1000,
-                type: 'grandma',
-                description: 'Grandmas harness quantum mechanics to bake more cookies',
-                multiplier: 2,
-                requirement: { building: 'grandma', count: 5 },
-                purchased: false,
-                icon: '👵'
-            },
-            
-            // Global Upgrades
-            {
-                id: 'cookie_fusion',
-                name: 'Cookie Fusion',
-                cost: 10000,
                 type: 'global',
-                description: 'All production increased by 50%',
-                multiplier: 1.5,
-                requirement: { cookies: 5000 },
-                purchased: false,
-                icon: '☢️'
-            },
-            {
-                id: 'time_bending',
-                name: 'Time Bending',
-                cost: 50000,
-                type: 'global',
-                description: 'Cookie production travels through time, doubling output',
+                description: 'All production increased by 100%',
                 multiplier: 2,
-                requirement: { cookies: 25000 },
+                requirement: { cookies: 1000 },
                 purchased: false,
-                icon: '⌛'
+                icon: '⚡'
             }
         ];
     }
@@ -195,25 +99,10 @@ class UpgradeManager {
         if (this.game.cookies >= cost) {
             this.game.cookies -= cost;
             building.count++;
-            this.game.updateCPS();
+            this.updateCPS();
             this.checkUnlocks();
             this.renderUpgrades();
-            return true;
-        }
-        return false;
-    }
-
-    purchaseUpgrade(upgradeId) {
-        const upgrade = this.upgrades.find(u => u.id === upgradeId);
-        if (!upgrade || upgrade.purchased) return false;
-
-        if (this.game.cookies >= upgrade.cost) {
-            this.game.cookies -= upgrade.cost;
-            upgrade.purchased = true;
-            this.purchased.add(upgradeId);
-            this.applyUpgrade(upgrade);
-            this.renderUpgrades();
-            Utils.showNotification(`Purchased ${upgrade.name}!`);
+            this.game.saveGame(); // Save after purchase
             return true;
         }
         return false;
@@ -223,45 +112,13 @@ class UpgradeManager {
         return Math.floor(building.baseCost * Math.pow(1.15, building.count));
     }
 
-    applyUpgrade(upgrade) {
-        switch(upgrade.type) {
-            case 'cursor':
-                this.buildings.find(b => b.id === 'cursor').cps *= upgrade.multiplier;
-                break;
-            case 'grandma':
-                this.buildings.find(b => b.id === 'grandma').cps *= upgrade.multiplier;
-                break;
-            case 'global':
-                this.game.globalMultiplier *= upgrade.multiplier;
-                break;
-            // Add more types as needed
-        }
-        this.game.updateCPS();
-    }
-
-    checkUnlocks() {
+    updateCPS() {
+        let totalCPS = 0;
         for (const building of this.buildings) {
-            if (!building.unlocked && building.requirement) {
-                const reqBuilding = this.buildings.find(b => b.id === building.requirement.building);
-                if (reqBuilding && reqBuilding.count >= building.requirement.count) {
-                    building.unlocked = true;
-                    Utils.showNotification(`New building unlocked: ${building.name}!`);
-                }
-            }
+            totalCPS += building.cps * building.count;
         }
-
-        for (const upgrade of this.upgrades) {
-            if (!upgrade.purchased && upgrade.requirement) {
-                if (upgrade.requirement.building) {
-                    const reqBuilding = this.buildings.find(b => b.id === upgrade.requirement.building);
-                    if (reqBuilding && reqBuilding.count >= upgrade.requirement.count) {
-                        upgrade.available = true;
-                    }
-                } else if (upgrade.requirement.cookies && this.game.cookies >= upgrade.requirement.cookies) {
-                    upgrade.available = true;
-                }
-            }
-        }
+        this.game.cookiesPerSecond = totalCPS * this.game.globalMultiplier;
+        this.game.updateUI();
     }
 
     renderUpgrades() {
@@ -269,7 +126,7 @@ class UpgradeManager {
         if (!container) return;
 
         container.innerHTML = '';
-
+        
         // Render buildings
         for (const building of this.buildings) {
             if (!building.unlocked) continue;
@@ -283,50 +140,44 @@ class UpgradeManager {
                 <div class="upgrade-icon">${building.icon}</div>
                 <div class="upgrade-name">${building.name}</div>
                 <div class="upgrade-count">Owned: ${building.count}</div>
-                <div class="upgrade-cost">Cost: ${Utils.formatNumber(cost)}</div>
-                <div class="upgrade-cps">CPS: ${Utils.formatNumber(building.cps)}</div>
+                <div class="upgrade-cost">Cost: ${this.game.formatNumber(cost)}</div>
+                <div class="upgrade-cps">CPS: ${this.game.formatNumber(building.cps)}</div>
             `;
 
-            buildingElement.onclick = () => this.purchaseBuilding(building.id);
+            buildingElement.onclick = () => {
+                if (this.purchaseBuilding(building.id)) {
+                    this.game.updateUI();
+                }
+            };
             container.appendChild(buildingElement);
-        }
-
-        // Render upgrades
-        const availableUpgrades = this.upgrades.filter(u => !u.purchased && u.available);
-        for (const upgrade of availableUpgrades) {
-            const upgradeElement = document.createElement('div');
-            upgradeElement.className = `upgrade-tile ${this.game.cookies >= upgrade.cost ? '' : 'locked'}`;
-            upgradeElement.innerHTML = `
-                <div class="upgrade-icon">${upgrade.icon}</div>
-                <div class="upgrade-name">${upgrade.name}</div>
-                <div class="upgrade-description">${upgrade.description}</div>
-                <div class="upgrade-cost">Cost: ${Utils.formatNumber(upgrade.cost)}</div>
-            `;
-
-            upgradeElement.onclick = () => this.purchaseUpgrade(upgrade.id);
-            container.appendChild(upgradeElement);
         }
     }
 
-    // Save/Load methods
     save() {
         return {
-            buildings: this.buildings,
-            purchased: Array.from(this.purchased),
-            upgrades: this.upgrades
+            buildings: this.buildings.map(b => ({
+                id: b.id,
+                count: b.count,
+                unlocked: b.unlocked
+            })),
+            purchased: Array.from(this.purchased)
         };
     }
 
     load(saveData) {
         if (saveData.buildings) {
-            this.buildings = saveData.buildings;
+            for (const savedBuilding of saveData.buildings) {
+                const building = this.buildings.find(b => b.id === savedBuilding.id);
+                if (building) {
+                    building.count = savedBuilding.count;
+                    building.unlocked = savedBuilding.unlocked;
+                }
+            }
         }
         if (saveData.purchased) {
             this.purchased = new Set(saveData.purchased);
         }
-        if (saveData.upgrades) {
-            this.upgrades = saveData.upgrades;
-        }
+        this.updateCPS();
         this.renderUpgrades();
     }
 }
