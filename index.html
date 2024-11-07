@@ -10,42 +10,45 @@
 <body>
     <div id="dimension-portal" class="dimension-portal"></div>
     <div class="game-container">
-        <!-- Left Panel -->
-        <div class="side-panel" id="upgrades-panel">
-            <h2>Upgrades & Research</h2>
-            <div class="upgrades-grid" id="upgrades-grid"></div>
-            <div class="research-tree" id="research-tree"></div>
-            <div id="mini-games-container"></div>
-        </div>
-
-        <!-- Center Panel -->
-        <div class="main-content">
-            <div class="stats-container">
-                <div id="cookie-count">0 cookies</div>
-                <div id="cps">0 per second</div>
-                <div id="multiplier">Multiplier: x1.0</div>
-                <div id="prestige-points">Prestige Points: 0</div>
+        <!-- Panels Container (Upgrades, Achievements, and Stats) -->
+        <div class="panels-container">
+            <!-- Left panel for upgrades -->
+            <div class="side-panel" id="upgrades-panel">
+                <h2>Upgrades</h2>
+                <div id="upgrades-grid" class="upgrades-grid"></div>
             </div>
 
-            <div class="cookie-container">
-                <div class="cookie" id="cookie"></div>
+            <!-- Middle panel (where cookie is) stays the same -->
+            <div class="main-content">
+                <div class="stats-container">
+                    <div id="cookie-count">0 cookies</div>
+                    <div id="cps">0 per second</div>
+                    <div id="multiplier">Multiplier: x1.0</div>
+                    <div id="prestige-points">Prestige Points: 0</div>
+                </div>
+
+                <div class="cookie-container">
+                    <div class="cookie" id="cookie"></div>
+                </div>
+
+                <button class="prestige-button" id="prestige-button" style="display: none;">
+                    Ascend to Cookie Heaven
+                </button>
             </div>
 
-            <button class="prestige-button" id="prestige-button" style="display: none;">
-                Ascend to Cookie Heaven
-            </button>
+            <!-- Right panel for achievements & stats -->
+            <div class="side-panel">
+                <h2>Achievements</h2>
+                <div id="achievements-list" class="achievements-list"></div>
+                <h2>Stats</h2>
+                <div id="stats" class="stats"></div>
+            </div>
         </div>
 
-        <!-- Right Panel -->
-        <div class="side-panel">
-            <h2>Achievements & Stats</h2>
-            <div id="achievements"></div>
-            <div id="statistics"></div>
-        </div>
+        <!-- Special Events Container -->
+        <div id="special-events-container"></div>
+
     </div>
-
-    <!-- Special Events Container -->
-    <div id="special-events-container"></div>
 
     <!-- Game Scripts -->
     <script src="js/config.js"></script>
