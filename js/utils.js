@@ -1,5 +1,4 @@
-// utils.js - Utility Functions
-
+// utils.js - Helper Functions
 const Utils = {
     // Number Formatting
     formatNumber: function(num) {
@@ -22,35 +21,93 @@ const Utils = {
         return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`;
     },
 
-    // Particle Effects
-    createParticles: function(x, y, amount = 5) {
-        for (let i = 0; i < amount; i++) {
+    // Visual Effects
+    createParticles: function(x, y, type = 'click') {
+        const settings = CONFIG.PARTICLES[type.toUpperCase()];
+        for (let i = 0; i < settings.COUNT; i++) {
             const particle = document.createElement('div');
-            particle.className = 'particle';
+            particle.className = `particle ${type}-particle`;
             
-            // Random size between 5-15px
-            const size = Math.random() * 10 + 5;
+            // Random size
+            const size = Math.random() * (settings.MAX_SIZE - settings.MIN_SIZE) + settings.MIN_SIZE;
             particle.style.width = size + 'px';
             particle.style.height = size + 'px';
             
             // Random direction
             const angle = Math.random() * Math.PI * 2;
-            const velocity = Math.random() * 3 + 2;
+            const velocity = Math.random() * settings.SPEED + 2;
             const dx = Math.cos(angle) * velocity * 50;
             const dy = Math.sin(angle) * velocity * 50;
             
             particle.style.setProperty('--dx', dx + 'px');
             particle.style.setProperty('--dy', dy + 'px');
             
-            // Position at click
+            // Position at click/spawn point
             particle.style.left = x + 'px';
             particle.style.top = y + 'px';
             
             document.body.appendChild(particle);
             
-            // Remove particle after animation
-            setTimeout(() => particle.remove(), 1000);
+            setTimeout(() => particle.remove(), settings.LIFETIME);
         }
+    },
+
+    // Notifications
+    showNotification: function(message, type = 'info', duration = 3000) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = message;
+        
+        document.body.appendChild(notification);
+        
+        // Animate and remove
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 500);
+        }, duration);
+    },
+
+    // Achievement Popup
+    showAchievement: function(achievement) {
+        const popup = document.createElement('div');
+        popup.className = 'achievement-popup';
+        popup.innerHTML = `
+            <div class="achievement-icon">${achievement.icon}</div>
+            <div class="achievement-info">
+                <h3>Achievement Unlocked!</h3>
+                <h4>${achievement.name}</h4>
+                <p>${achievement.description}</p>
+            </div>
+        `;
+        
+        document.body.appendChild(popup);
+        
+        setTimeout(() => {
+            popup.style.opacity = '0';
+            setTimeout(() => popup.remove(), 500);
+        }, 5000);
+    },
+
+    // Screen Effects
+    screenFlash: function(color = '#FFF', duration = 300) {
+        const flash = document.createElement('div');
+        flash.className = 'screen-flash';
+        flash.style.background = color;
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), duration);
+    },
+
+    // Random Effects
+    createFloatingText: function(x, y, text, color = '#FFF') {
+        const floatingText = document.createElement('div');
+        floatingText.className = 'floating-text';
+        floatingText.textContent = text;
+        floatingText.style.color = color;
+        floatingText.style.left = x + 'px';
+        floatingText.style.top = y + 'px';
+        
+        document.body.appendChild(floatingText);
+        setTimeout(() => floatingText.remove(), 1000);
     },
 
     // Save/Load System
@@ -58,9 +115,11 @@ const Utils = {
         try {
             const saveData = JSON.stringify(gameState);
             localStorage.setItem(CONFIG.SAVE_KEY, saveData);
+            this.showNotification('Game saved!', 'success');
             return true;
         } catch (error) {
             console.error('Save failed:', error);
+            this.showNotification('Failed to save game!', 'error');
             return false;
         }
     },
@@ -71,11 +130,12 @@ const Utils = {
             return saveData ? JSON.parse(saveData) : null;
         } catch (error) {
             console.error('Load failed:', error);
+            this.showNotification('Failed to load save!', 'error');
             return null;
         }
     },
 
-    // Random Number Generation
+    // Random Number Utilities
     random: function(min, max) {
         return Math.random() * (max - min) + min;
     },
@@ -84,50 +144,8 @@ const Utils = {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     },
 
-    // Notifications
-    showNotification: function(message, duration = 3000) {
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
-        }, duration);
-    },
-
-    // Achievement Popup
-    showAchievement: function(title, description) {
-        const achievement = document.createElement('div');
-        achievement.className = 'achievement-popup';
-        achievement.innerHTML = `
-            <h3>🏆 Achievement Unlocked!</h3>
-            <h4>${title}</h4>
-            <p>${description}</p>
-        `;
-        
-        document.body.appendChild(achievement);
-        
-        setTimeout(() => {
-            achievement.style.opacity = '0';
-            setTimeout(() => achievement.remove(), 500);
-        }, 5000);
-    },
-
-    // Cost Calculation
-    calculateCost: function(baseCost, owned) {
-        return Math.floor(baseCost * Math.pow(1.15, owned));
-    },
-
-    // Check if player can afford something
-    canAfford: function(cost, currentCookies) {
-        return currentCookies >= cost;
-    },
-
-    // Calculate CPS
-    calculateCPS: function(buildings, upgrades, multiplier) {
+    // Cookie Production Calculations
+    calculateCPS: function(buildings, multiplier) {
         let cps = 0;
         for (const building of buildings) {
             cps += building.cps * building.count;
@@ -135,43 +153,31 @@ const Utils = {
         return cps * multiplier;
     },
 
-    // Calculate prestige gain
-    calculatePrestigeGain: function(cookies) {
-        return Math.floor(Math.pow(cookies / CONFIG.PRESTIGE_REQUIREMENT, CONFIG.PRESTIGE_SCALING));
-    },
-
-    // Create floating text
-    createFloatingText: function(x, y, text, color = '#ffd700') {
-        const floatingText = document.createElement('div');
-        floatingText.className = 'floating-text';
-        floatingText.textContent = text;
-        floatingText.style.color = color;
-        floatingText.style.left = x + 'px';
-        floatingText.style.top = y + 'px';
-        
-        document.body.appendChild(floatingText);
-        
-        setTimeout(() => floatingText.remove(), 1000);
-    },
-
-    // Debug logging
-    debug: function(...args) {
-        if (CONFIG.DEBUG.ENABLED) {
-            console.log('[Debug]', ...args);
+    // Research Point Calculations
+    calculateResearchPoints: function(buildings) {
+        let points = 0;
+        for (const building of buildings) {
+            points += building.count * CONFIG.RESEARCH.POINTS_PER_BUILDING;
         }
+        return points;
     },
 
-    // Check if an element is in viewport
-    isInViewport: function(element) {
-        const rect = element.getBoundingClientRect();
-        return (
-            rect.top >= 0 &&
-            rect.left >= 0 &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-        );
+    // Prestige Calculations
+    calculatePrestigeGain: function(cookies) {
+        return CONFIG.PRESTIGE.CHIPS_FORMULA(cookies);
+    },
+
+    // Building Cost Calculation
+    calculateBuildingCost: function(baseCost, owned) {
+        return Math.floor(baseCost * Math.pow(1.15, owned));
+    },
+
+    // Event System
+    scheduleEvent: function(callback, minTime, maxTime) {
+        const delay = this.random(minTime, maxTime);
+        return setTimeout(callback, delay);
     }
 };
 
-// Export utils
+// Export Utils
 window.Utils = Utils;
