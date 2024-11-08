@@ -1,71 +1,102 @@
-// game.js - Main Game Logic (Fixed Version)
+// game.js - Main Game Logic
 class CookieGame {
     constructor() {
         // Core game state
         this.cookies = 0;
         this.totalCookiesBaked = 0;
-        this.cookiesPerClick = 1;
+        this.clickPower = 1;
         this.cookiesPerSecond = 0;
         this.globalMultiplier = 1;
         this.clickMultiplier = 1;
+        this.criticalClickChance = 0.1;
+        this.criticalClickMultiplier = 7;
+        this.goldenCookieFrequency = 1;
+        this.goldenCookieDuration = 13;
         this.totalClicks = 0;
+        this.goldenCookiesClicked = 0;
+        this.startTime = Date.now();
 
-        // Initialize upgrades system
-        this.upgrades = new UpgradeManager(this);
-
-        // Initialize UI elements
-        this.initializeUI();
-        this.initializeEventListeners();
+        // Initialize game systems
+        this.initializeSystems();
         
-        // Load saved game or start new
-        this.loadGame();
+        // Initialize UI
+        this.initializeUI();
         
         // Start game loops
-        this.startGameLoop();
-        this.startAutoSave();
+        this.startGameLoops();
+        
+        // Load saved game or start tutorial
+        this.loadGame() || this.startTutorial();
+        
+        // Add event listeners
+        this.addEventListeners();
+    }
+
+    initializeSystems() {
+        // Initialize all game systems in the correct order
+        this.buildings = new BuildingManager(this);
+        this.upgrades = new UpgradeManager(this);
+        this.research = new ResearchSystem(this);
+        this.achievements = new AchievementSystem(this);
+        this.prestige = new PrestigeSystem(this);
+        this.events = new EventSystem(this);
     }
 
     initializeUI() {
+        // Get UI elements
         this.elements = {
             cookie: document.getElementById('cookie'),
             cookieCount: document.getElementById('cookie-count'),
             cps: document.getElementById('cps'),
             multiplier: document.getElementById('multiplier')
         };
-        
+
+        // Initial UI update
         this.updateUI();
     }
 
-    initializeEventListeners() {
+    startGameLoops() {
+        // Production loop - updates every 50ms for smooth counting
+        setInterval(() => {
+            this.addCookies(this.cookiesPerSecond / 20);
+        }, 50);
+
+        // Save game every 30 seconds
+        setInterval(() => {
+            this.saveGame();
+        }, 30000);
+
+        // Update UI every 100ms
+        setInterval(() => {
+            this.updateUI();
+        }, 100);
+    }
+
+    addEventListeners() {
         // Cookie click handler
         this.elements.cookie.addEventListener('click', (e) => {
             this.clickCookie(e);
         });
 
-        // Save game before window closes
-        window.addEventListener('beforeunload', () => {
-            this.saveGame();
-        });
-
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.key === ' ') { // Spacebar clicks cookie
-                this.clickCookie({
-                    clientX: this.elements.cookie.offsetLeft + this.elements.cookie.offsetWidth / 2,
-                    clientY: this.elements.cookie.offsetTop + this.elements.cookie.offsetHeight / 2
-                });
-            }
+            this.handleKeyPress(e);
+        });
+
+        // Save before closing
+        window.addEventListener('beforeunload', () => {
+            this.saveGame();
         });
     }
 
     clickCookie(event) {
         // Calculate click value
-        let clickValue = this.cookiesPerClick * this.clickMultiplier * this.globalMultiplier;
+        let clickValue = this.clickPower * this.clickMultiplier * this.globalMultiplier;
 
-        // Critical click chance (10%)
-        if (Math.random() < 0.1) {
-            clickValue *= 10;
-            this.createCriticalClickEffect(event);
+        // Check for critical click
+        if (Math.random() < this.criticalClickChance) {
+            clickValue *= this.criticalClickMultiplier;
+            this.createCriticalEffect(event);
         }
 
         // Add cookies
@@ -74,23 +105,25 @@ class CookieGame {
 
         // Create click effects
         this.createClickEffects(event, clickValue);
-    }
 
-    addCookies(amount) {
-        this.cookies += amount;
-        this.totalCookiesBaked += amount;
-        this.updateUI();
+        // Check achievements
+        this.achievements.checkAchievements();
     }
 
     createClickEffects(event, amount) {
-        // Particle effects
-        this.createParticles(event.clientX, event.clientY);
+        // Create particles
+        Utils.createParticles(
+            event.clientX, 
+            event.clientY,
+            amount >= this.clickPower * this.criticalClickMultiplier ? 'critical' : 'click'
+        );
 
-        // Floating number
-        this.createFloatingText(
+        // Create floating text
+        Utils.createFloatingText(
             event.clientX,
             event.clientY,
-            `+${this.formatNumber(amount)}`
+            `+${Utils.formatNumber(amount)}`,
+            amount >= this.clickPower * this.criticalClickMultiplier ? '#ff0' : '#fff'
         );
 
         // Cookie bounce animation
@@ -100,44 +133,13 @@ class CookieGame {
         }, 100);
     }
 
-    createParticles(x, y) {
-        for (let i = 0; i < 5; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            
-            const size = Math.random() * 10 + 5;
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            
-            const angle = Math.random() * Math.PI * 2;
-            const velocity = Math.random() * 3 + 2;
-            const dx = Math.cos(angle) * velocity * 50;
-            const dy = Math.sin(angle) * velocity * 50;
-            
-            particle.style.left = x + 'px';
-            particle.style.top = y + 'px';
-            particle.style.setProperty('--dx', dx + 'px');
-            particle.style.setProperty('--dy', dy + 'px');
-            
-            document.body.appendChild(particle);
-            setTimeout(() => particle.remove(), 1000);
-        }
-    }
+    createCriticalEffect(event) {
+        // Screen flash
+        Utils.screenFlash('#ff0', 100);
 
-    createFloatingText(x, y, text) {
-        const floatingText = document.createElement('div');
-        floatingText.className = 'floating-text';
-        floatingText.textContent = text;
-        floatingText.style.left = x + 'px';
-        floatingText.style.top = y + 'px';
-        
-        document.body.appendChild(floatingText);
-        setTimeout(() => floatingText.remove(), 1000);
-    }
-
-    createCriticalClickEffect(event) {
+        // Critical text
         const critText = document.createElement('div');
-        critText.className = 'critical-click';
+        critText.className = 'critical-text';
         critText.textContent = 'CRITICAL!';
         critText.style.left = `${event.clientX}px`;
         critText.style.top = `${event.clientY}px`;
@@ -145,45 +147,107 @@ class CookieGame {
         setTimeout(() => critText.remove(), 1000);
     }
 
+    addCookies(amount) {
+        this.cookies += amount;
+        this.totalCookiesBaked += amount;
+        this.updateUI();
+    }
+
     updateUI() {
-        // Update cookie count display
-        this.elements.cookieCount.textContent = `${this.formatNumber(this.cookies)} cookies`;
-        this.elements.cps.textContent = `per second: ${this.formatNumber(this.cookiesPerSecond)}`;
-        this.elements.multiplier.textContent = `multiplier: x${this.formatNumber(this.globalMultiplier)}`;
+        // Update cookie display
+        this.elements.cookieCount.textContent = `${Utils.formatNumber(this.cookies)} cookies`;
+        this.elements.cps.textContent = `per second: ${Utils.formatNumber(this.cookiesPerSecond)}`;
+        this.elements.multiplier.textContent = `multiplier: x${Utils.formatNumber(this.globalMultiplier)}`;
+
+        // Update prestige button
+        this.prestige.checkPrestigeButton();
+
+        // Update other UI elements
+        this.buildings.renderBuildings();
+        this.upgrades.renderUpgrades();
+        this.research.renderResearch();
+        this.achievements.renderAchievements();
     }
 
-    startGameLoop() {
-        setInterval(() => {
-            // Add CPS (divide by 20 for smoother counting - 50ms intervals)
-            this.addCookies(this.cookiesPerSecond / 20);
-        }, 50);
+    handleKeyPress(event) {
+        switch(event.key) {
+            case ' ': // Space clicks cookie
+                this.clickCookie({
+                    clientX: this.elements.cookie.offsetLeft + this.elements.cookie.offsetWidth / 2,
+                    clientY: this.elements.cookie.offsetTop + this.elements.cookie.offsetHeight / 2
+                });
+                break;
+            case 's': // S saves game
+                this.saveGame();
+                break;
+            case 'p': // P prestiges if possible
+                if (this.prestige.canPrestige()) {
+                    this.prestige.prestige();
+                }
+                break;
+        }
     }
 
-    startAutoSave() {
-        setInterval(() => {
-            this.saveGame();
-        }, 30000); // Save every 30 seconds
+    startTutorial() {
+        const steps = [
+            {
+                text: "Welcome to Cookie Clicker! Click the cookie to start baking!",
+                element: this.elements.cookie
+            },
+            {
+                text: "Buy buildings to produce cookies automatically!",
+                element: document.querySelector('.buildings-container')
+            },
+            {
+                text: "Unlock upgrades to boost your production!",
+                element: document.querySelector('.upgrades-container')
+            }
+        ];
+
+        let currentStep = 0;
+        const showStep = () => {
+            if (currentStep >= steps.length) return;
+            
+            Utils.showNotification(steps[currentStep].text, 'tutorial');
+            steps[currentStep].element.classList.add('tutorial-highlight');
+            
+            setTimeout(() => {
+                steps[currentStep].element.classList.remove('tutorial-highlight');
+                currentStep++;
+                showStep();
+            }, 5000);
+        };
+
+        showStep();
     }
 
     saveGame() {
         const saveData = {
             cookies: this.cookies,
             totalCookiesBaked: this.totalCookiesBaked,
-            cookiesPerClick: this.cookiesPerClick,
+            clickPower: this.clickPower,
             cookiesPerSecond: this.cookiesPerSecond,
             globalMultiplier: this.globalMultiplier,
             clickMultiplier: this.clickMultiplier,
             totalClicks: this.totalClicks,
+            goldenCookiesClicked: this.goldenCookiesClicked,
+            startTime: this.startTime,
+            buildings: this.buildings.save(),
             upgrades: this.upgrades.save(),
+            research: this.research.save(),
+            achievements: this.achievements.save(),
+            prestige: this.prestige.save(),
+            events: this.events.save(),
             lastSave: Date.now()
         };
 
         localStorage.setItem('cookieGameSave', JSON.stringify(saveData));
+        Utils.showNotification('Game saved!', 'success');
     }
 
     loadGame() {
         const saveData = localStorage.getItem('cookieGameSave');
-        if (!saveData) return;
+        if (!saveData) return false;
 
         try {
             const data = JSON.parse(saveData);
@@ -191,15 +255,20 @@ class CookieGame {
             // Load core data
             this.cookies = data.cookies || 0;
             this.totalCookiesBaked = data.totalCookiesBaked || 0;
-            this.cookiesPerClick = data.cookiesPerClick || 1;
+            this.clickPower = data.clickPower || 1;
             this.globalMultiplier = data.globalMultiplier || 1;
             this.clickMultiplier = data.clickMultiplier || 1;
             this.totalClicks = data.totalClicks || 0;
+            this.goldenCookiesClicked = data.goldenCookiesClicked || 0;
+            this.startTime = data.startTime || Date.now();
 
-            // Load upgrades
-            if (data.upgrades) {
-                this.upgrades.load(data.upgrades);
-            }
+            // Load systems
+            this.buildings.load(data.buildings);
+            this.upgrades.load(data.upgrades);
+            this.research.load(data.research);
+            this.achievements.load(data.achievements);
+            this.prestige.load(data.prestige);
+            this.events.load(data.events);
 
             // Calculate offline progress
             if (data.lastSave) {
@@ -207,40 +276,53 @@ class CookieGame {
             }
 
             this.updateUI();
+            Utils.showNotification('Game loaded!', 'success');
+            return true;
         } catch (error) {
             console.error('Error loading save:', error);
-            alert('Error loading save file!');
+            Utils.showNotification('Error loading save!', 'error');
+            return false;
         }
     }
 
     calculateOfflineProgress(lastSave) {
         const offlineTime = (Date.now() - lastSave) / 1000; // in seconds
-        const offlineProduction = this.cookiesPerSecond * offlineTime * 0.5; // 50% of normal production
+        const offlineProduction = this.cookiesPerSecond * offlineTime * 0.5; // 50% efficiency
         
         if (offlineProduction > 0) {
             this.addCookies(offlineProduction);
-            this.createFloatingText(
-                window.innerWidth / 2,
-                window.innerHeight / 2,
-                `Welcome back! +${this.formatNumber(offlineProduction)} cookies!`
+            Utils.showNotification(
+                `Welcome back! You earned ${Utils.formatNumber(offlineProduction)} cookies while away!`,
+                'success'
             );
         }
     }
 
+    resetGame() {
+        // Reset core values
+        this.cookies = 0;
+        this.clickPower = 1;
+        this.cookiesPerSecond = 0;
+        this.globalMultiplier = 1;
+        this.clickMultiplier = 1;
+
+        // Reset systems
+        this.buildings = new BuildingManager(this);
+        this.upgrades = new UpgradeManager(this);
+        this.research = new ResearchSystem(this);
+        
+        // Keep achievements and prestige data
+        
+        // Update UI
+        this.updateUI();
+    }
+
     formatNumber(num) {
-        const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc'];
-        let suffixIndex = 0;
-        
-        while (num >= 1000 && suffixIndex < suffixes.length - 1) {
-            num /= 1000;
-            suffixIndex++;
-        }
-        
-        return num.toFixed(3) + suffixes[suffixIndex];
+        return Utils.formatNumber(num);
     }
 }
 
-// Start the game when the page loads
+// Start game when page loads
 window.onload = () => {
     window.game = new CookieGame();
 };
