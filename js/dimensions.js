@@ -1,12 +1,11 @@
 // dimensions.js - Dimensional Travel and Alternate Realities System
-
-class DimensionalSystem {
+class DimensionManager {
     constructor(game) {
         this.game = game;
         this.currentDimension = 'normal';
         this.unlockedDimensions = new Set(['normal']);
         this.dimensionalEnergy = 0;
-        this.maxEnergy = CONFIG.DIMENSIONS.MAX_ENERGY;
+        this.maxEnergy = 100;
         
         this.dimensions = {
             normal: {
@@ -14,48 +13,44 @@ class DimensionalSystem {
                 icon: "🌍",
                 multiplier: 1,
                 description: "Your home dimension",
-                unlocked: true,
-                color: "#4CAF50"
+                color: "#4CAF50",
+                unlocked: true
             },
             quantum: {
                 name: "Quantum Realm",
                 icon: "⚛️",
                 multiplier: 2,
-                energyCost: 10,
-                description: "Cookies exist in multiple states simultaneously",
-                unlockCost: 1000000,
+                description: "Cookies exist in multiple states",
+                cost: 1000000,
                 color: "#2196F3",
-                effect: () => this.enableQuantumEffects()
+                unlocked: false
             },
             celestial: {
-                name: "Celestial Plane",
+                name: "Celestial Dimension",
                 icon: "✨",
                 multiplier: 5,
-                energyCost: 25,
-                description: "Harness the power of cosmic cookies",
-                unlockCost: 10000000,
+                description: "Harness cosmic cookie energy",
+                cost: 10000000,
                 color: "#9C27B0",
-                effect: () => this.enableCelestialEffects()
+                unlocked: false
             },
             void: {
                 name: "Cookie Void",
                 icon: "🌌",
                 multiplier: 10,
-                energyCost: 50,
-                description: "The mysterious source of all cookies",
-                unlockCost: 100000000,
+                description: "The source of all cookies",
+                cost: 100000000,
                 color: "#000000",
-                effect: () => this.enableVoidEffects()
+                unlocked: false
             },
-            fractal: {
-                name: "Fractal Dimension",
-                icon: "💠",
-                multiplier: 20,
-                energyCost: 100,
-                description: "Infinite recursive cookies",
-                unlockCost: 1000000000,
+            mirror: {
+                name: "Mirror Universe",
+                icon: "🪞",
+                multiplier: 25,
+                description: "Everything is deliciously backwards",
+                cost: 1000000000,
                 color: "#E91E63",
-                effect: () => this.enableFractalEffects()
+                unlocked: false
             }
         };
 
@@ -79,7 +74,7 @@ class DimensionalSystem {
             <div class="dimensions-grid"></div>
         `;
         
-        document.getElementById('upgrades-panel').appendChild(container);
+        document.getElementById('dimensions-container').appendChild(container);
         this.updateUI();
     }
 
@@ -103,21 +98,16 @@ class DimensionalSystem {
                 <div class="dimension-info">
                     <h4>${dim.name}</h4>
                     <p>${dim.description}</p>
-                    ${dim.energyCost ? `<p class="energy-cost">Energy Cost: ${dim.energyCost}</p>` : ''}
-                    ${dim.multiplier ? `<p>Multiplier: x${dim.multiplier}</p>` : ''}
+                    ${dim.cost ? `<p class="cost">Cost: ${this.game.formatNumber(dim.cost)} cookies</p>` : ''}
+                    ${dim.energyCost ? `<p class="energy-cost">Energy: ${dim.energyCost}</p>` : ''}
+                    <p class="multiplier">×${dim.multiplier} production</p>
                 </div>
-                ${!isUnlocked ? 
-                    `<button class="unlock-button">Unlock (${Utils.formatNumber(dim.unlockCost)} cookies)</button>` :
-                    `<button class="travel-button" ${(!hasEnoughEnergy || isCurrent) ? 'disabled' : ''}>
-                        ${isCurrent ? 'Current' : 'Travel'}
-                    </button>`
-                }
             `;
 
             if (!isUnlocked) {
-                dimElement.querySelector('.unlock-button').onclick = () => this.unlockDimension(dimId);
+                dimElement.onclick = () => this.unlockDimension(dimId);
             } else if (!isCurrent && hasEnoughEnergy) {
-                dimElement.querySelector('.travel-button').onclick = () => this.travelToDimension(dimId);
+                dimElement.onclick = () => this.travelToDimension(dimId);
             }
 
             grid.appendChild(dimElement);
@@ -137,30 +127,34 @@ class DimensionalSystem {
         const dimension = this.dimensions[dimId];
         if (!dimension || this.unlockedDimensions.has(dimId)) return;
 
-        if (this.game.cookies >= dimension.unlockCost) {
-            this.game.cookies -= dimension.unlockCost;
+        if (this.game.cookies >= dimension.cost) {
+            this.game.cookies -= dimension.cost;
             this.unlockedDimensions.add(dimId);
-            Utils.showNotification(`Unlocked ${dimension.name}!`);
+            
+            Utils.screenFlash(dimension.color);
+            Utils.showNotification(`Unlocked ${dimension.name}!`, 'dimension');
+            
             this.updateUI();
+            this.game.updateUI();
         } else {
-            Utils.showNotification("Not enough cookies!");
+            Utils.showNotification('Not enough cookies!', 'error');
         }
     }
 
     travelToDimension(dimId) {
         const dimension = this.dimensions[dimId];
         if (!dimension || !this.unlockedDimensions.has(dimId)) return;
-        if (this.dimensionalEnergy < dimension.energyCost) return;
 
-        // Create portal effect
         this.createPortalEffect(() => {
+            const oldDimension = this.dimensions[this.currentDimension];
             this.currentDimension = dimId;
-            this.dimensionalEnergy -= dimension.energyCost;
-            this.game.globalMultiplier *= dimension.multiplier / this.dimensions[this.currentDimension].multiplier;
             
-            if (dimension.effect) dimension.effect();
+            // Update game multiplier
+            this.game.globalMultiplier *= (dimension.multiplier / oldDimension.multiplier);
             
-            Utils.showNotification(`Traveled to ${dimension.name}!`);
+            // Apply dimension effects
+            this.applyDimensionEffects(dimension);
+            
             this.updateUI();
         });
     }
@@ -168,9 +162,9 @@ class DimensionalSystem {
     createPortalEffect(callback) {
         const portal = document.createElement('div');
         portal.className = 'dimensional-portal';
+        portal.style.backgroundColor = this.dimensions[this.currentDimension].color;
         document.body.appendChild(portal);
 
-        // Animation
         setTimeout(() => {
             portal.style.opacity = '1';
             setTimeout(() => {
@@ -184,66 +178,76 @@ class DimensionalSystem {
     startEnergyGeneration() {
         setInterval(() => {
             if (this.dimensionalEnergy < this.maxEnergy) {
-                this.dimensionalEnergy += CONFIG.DIMENSIONS.ENERGY_GAIN_RATE;
+                this.dimensionalEnergy += 0.1;
                 this.dimensionalEnergy = Math.min(this.dimensionalEnergy, this.maxEnergy);
                 this.updateUI();
             }
         }, 1000);
     }
 
-    enableQuantumEffects() {
-        this.game.quantumChance = 0.1; // 10% chance for quantum events
+    applyDimensionEffects(dimension) {
+        switch (dimension.name) {
+            case "Quantum Realm":
+                this.startQuantumEffects();
+                break;
+            case "Celestial Dimension":
+                this.startCelestialEffects();
+                break;
+            case "Cookie Void":
+                this.startVoidEffects();
+                break;
+            case "Mirror Universe":
+                this.startMirrorEffects();
+                break;
+        }
+    }
+
+    startQuantumEffects() {
         setInterval(() => {
-            if (Math.random() < this.game.quantumChance) {
-                this.triggerQuantumEvent();
+            if (Math.random() < 0.1) { // 10% chance per second
+                const bonus = this.game.cookiesPerSecond * 10;
+                this.game.addCookies(bonus);
+                Utils.createFloatingText(
+                    Math.random() * window.innerWidth,
+                    Math.random() * window.innerHeight,
+                    "Quantum Surge!",
+                    '#2196F3'
+                );
             }
-        }, 10000);
+        }, 1000);
     }
 
-    enableCelestialEffects() {
-        this.game.celestialBlessings = true;
+    startCelestialEffects() {
         setInterval(() => {
-            this.triggerCelestialBlessing();
-        }, 30000);
+            if (Math.random() < 0.05) { // 5% chance per second
+                const multiplier = Math.random() * 4 + 1; // 1x to 5x
+                this.game.globalMultiplier *= multiplier;
+                setTimeout(() => {
+                    this.game.globalMultiplier /= multiplier;
+                }, 10000);
+                Utils.showNotification(`Celestial blessing: ×${multiplier.toFixed(1)} production!`, 'dimension');
+            }
+        }, 1000);
     }
 
-    enableVoidEffects() {
-        this.game.voidPower = true;
-        this.game.clickPower *= 2;
-    }
-
-    enableFractalEffects() {
-        this.game.fractalMultiplier = 1.5;
+    startVoidEffects() {
         setInterval(() => {
-            this.generateFractalCookies();
-        }, 5000);
+            if (Math.random() < 0.01) { // 1% chance per second
+                this.game.cookies *= 1.1;
+                Utils.showNotification('Void energy surges through your cookies!', 'dimension');
+            }
+        }, 1000);
     }
 
-    triggerQuantumEvent() {
-        const events = [
-            {name: "Quantum Multiplication", effect: () => this.game.cookies *= 1.1},
-            {name: "Quantum Surge", effect: () => this.game.cookiesPerSecond *= 2, duration: 10},
-            {name: "Quantum Entanglement", effect: () => this.game.clickPower *= 3, duration: 5}
-        ];
-
-        const event = events[Math.floor(Math.random() * events.length)];
-        event.effect();
-        Utils.showNotification(`Quantum Event: ${event.name}`);
-    }
-
-    triggerCelestialBlessing() {
-        const blessing = Math.random() * 100;
-        this.game.cookies += blessing * this.game.cookiesPerSecond;
-        Utils.showNotification("Celestial Blessing received!");
-    }
-
-    generateFractalCookies() {
-        const fractalBonus = this.game.cookiesPerSecond * this.game.fractalMultiplier;
-        this.game.cookies += fractalBonus;
-        Utils.createFloatingText(
-            document.querySelector('.cookie'),
-            `+${Utils.formatNumber(fractalBonus)} fractal cookies`
-        );
+    startMirrorEffects() {
+        // In mirror universe, clicking gives CPS bonus and idle gives click bonus
+        const originalClickPower = this.game.clickPower;
+        const originalCPS = this.game.cookiesPerSecond;
+        
+        this.game.clickPower = originalCPS;
+        this.game.cookiesPerSecond = originalClickPower;
+        
+        Utils.showNotification('Everything is reversed in the mirror universe!', 'dimension');
     }
 
     save() {
@@ -265,5 +269,5 @@ class DimensionalSystem {
     }
 }
 
-// Export the DimensionalSystem
-window.DimensionalSystem = DimensionalSystem;
+// Export DimensionManager
+window.DimensionManager = DimensionManager;
